@@ -16,5 +16,5 @@ public partial class MinecraftServer : ObservableObject
     [ObservableProperty]
     private string _status = "Stopped";
 
-    public string FolderPath {get; set; } = string.Empty;
+    public string FolderPath { get; set; } = string.Empty;
 }
