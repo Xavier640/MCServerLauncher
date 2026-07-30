@@ -1,0 +1,78 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MCServerLauncher.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+        x:Class="MCServerLauncher.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="MC Server Launcher"
+        Width="900"
+        Height="600"
+        MinWidth="700"
+        MinHeight="450"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="16">
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Margin="0,0,0,16">
+            <TextBlock Text="MC Server Launcher" 
+                       FontSize="22" 
+                       FontWeight="Bold" 
+                       VerticalAlignment="Center"/>
+            <Button Content="New Server" 
+                    Command="{Binding CreateServerCommand}"
+                    HorizontalAlignment="Right"
+                    HorizontalContentAlignment="Center"
+                    Padding="16,8"/>
+        </StackPanel>
+
+        <!-- Lista de servere -->
+        <Border Grid.Row="1" 
+                BorderBrush="#444" 
+                BorderThickness="1" 
+                CornerRadius="6"
+                Background="#1E1E1E">
+            <ListBox ItemsSource="{Binding Servers}"
+                     SelectedItem="{Binding SelectedServer}"
+                     Background="Transparent"
+                     Padding="8">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="12" Margin="4">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Width="180"/>
+                            <TextBlock Text="{Binding Version}" Opacity="0.7" Width="100"/>
+                            <TextBlock Text="{Binding Type}" Opacity="0.7" Width="100"/>
+                            <TextBlock Text="{Binding Status}" Opacity="0.7"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <!-- Butoane jos -->
+        <StackPanel Grid.Row="2" 
+                    Orientation="Horizontal" 
+                    Spacing="10" 
+                    Margin="0,16,0,0"
+                    HorizontalAlignment="Right">
+            <Button Content="Start" 
+                    Command="{Binding StartServerCommand}"
+                    IsEnabled="{Binding CanStart}"
+                    Padding="20,8"/>
+            <Button Content="Stop" 
+                    Command="{Binding StopServerCommand}"
+                    IsEnabled="{Binding CanStop}"
+                    Padding="20,8"/>
+            <Button Content="Open Folder" 
+                    Command="{Binding OpenFolderCommand}"
+                    Padding="16,8"/>
+        </StackPanel>
+
+    </Grid>
+</Window>
