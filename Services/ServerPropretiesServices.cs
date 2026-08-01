@@ -35,6 +35,7 @@ public static class ServerPropertiesService
     {
         var path = Path.Combine(serverFolder, "server.properties");
         var lines = new List<string>();
+        var propsCopy = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase);
 
         // Păstrăm liniile existente și actualizăm valorile
         if (File.Exists(path))
@@ -56,10 +57,10 @@ public static class ServerPropertiesService
                 }
 
                 var key = trimmed[..idx].Trim();
-                if (properties.TryGetValue(key, out var newValue))
+                if (propsCopy.TryGetValue(key, out var newValue))
                 {
                     lines.Add($"{key}={newValue}");
-                    properties.Remove(key);
+                    propsCopy.Remove(key);
                 }
                 else
                 {
@@ -69,7 +70,7 @@ public static class ServerPropertiesService
         }
 
         // Adăugăm cheile noi (dacă există)
-        foreach (var kv in properties)
+        foreach (var kv in propsCopy)
             lines.Add($"{kv.Key}={kv.Value}");
 
         File.WriteAllLines(path, lines);
