@@ -61,6 +61,7 @@
                     <Button Content="Stop" Name="StopButton" Padding="20,8"/>
                     <Button Content="Open Folder" Name="OpenFolderButton" Padding="16,8"/>
                     <Button Content="Settings" Name="SettingsButton" Padding="16,8"/>
+                    <Button Content="playit.gg" Name="PlayitButton" Padding="16,8"/>
         </StackPanel>
 
     </Grid>

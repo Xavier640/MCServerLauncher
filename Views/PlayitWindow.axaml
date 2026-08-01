@@ -1,0 +1,68 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MCServerLauncher.ViewModels"
+        x:Class="MCServerLauncher.Views.PlayitWindow"
+        x:DataType="vm:PlayitViewModel"
+        Title="playit.gg Tunneling"
+        Width="560"
+        Height="520"
+        WindowStartupLocation="CenterOwner">
+
+    <ScrollViewer Margin="20">
+        <StackPanel Spacing="14">
+
+            <TextBlock Text="playit.gg Setup" FontSize="18" FontWeight="Bold"/>
+
+            <TextBlock TextWrapping="Wrap" Opacity="0.8">
+                1. Creează cont pe playit.gg
+                2. Creează un agent (Docker sau normal) și copiază Secret Key
+                3. Li pește-l aici, apasă Save + Start
+                4. Pe site creează tunnel Minecraft Java → 127.0.0.1:25565
+            </TextBlock>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="Secret Key"/>
+                <TextBox Text="{Binding SecretKey}"
+                         Watermark="Lipește Secret Key de pe playit.gg"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Content="Save Key" Name="SaveKeyButton" Padding="12,6"/>
+                <Button Content="Open playit.gg" Name="OpenWebsiteButton" Padding="12,6"/>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="Status agent"/>
+                <TextBlock Text="{Binding Status}" FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Content="Start Agent" Name="StartButton" Padding="12,6"/>
+                <Button Content="Stop Agent" Name="StopButton" Padding="12,6"/>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="Adresa publică (IP tunnel)"/>
+                <TextBox Text="{Binding TunnelAddress}"
+                         Watermark="ex: my-server.gl.joinmc.link"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Content="Save Address" Name="SaveAddressButton" Padding="12,6"/>
+                <Button Content="Copy IP" Name="CopyButton" Padding="12,6"/>
+            </StackPanel>
+
+            <TextBlock Text="Log"/>
+            <TextBox Text="{Binding Log}"
+                     Height="140"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"/>
+
+            <Button Content="Close" Name="CloseButton"
+                    HorizontalAlignment="Right"
+                    Padding="16,6"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>

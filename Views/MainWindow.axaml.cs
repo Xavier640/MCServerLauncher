@@ -14,6 +14,7 @@ public partial class MainWindow : Window
 {
     private readonly MainWindowViewModel _vm;
     private readonly ServerProcessService _processService = new();
+    private readonly PlayitService _playitService = new();   // ← AICI (lângă celelalte)
 
     public MainWindow()
     {
@@ -33,8 +34,19 @@ public partial class MainWindow : Window
 
         if (OpenFolderButton != null)
             OpenFolderButton.Click += OnOpenFolderClick;
-         if (SettingsButton != null)
+
+        if (SettingsButton != null)
             SettingsButton.Click += OnSettingsClick;
+
+        // ← AICI legătura butonului playit.gg
+        if (PlayitButton != null)
+        {
+            PlayitButton.Click += async (_, _) =>
+            {
+                var win = new PlayitWindow(_playitService);
+                await win.ShowDialog(this);
+            };
+        }
 
         _processService.ServerStopped += () =>
         {
@@ -188,7 +200,6 @@ public partial class MainWindow : Window
     };
 
     ServerPropertiesService.Save(_vm.SelectedServer.FolderPath, newProps);
-    Title = "Settings salvate";
 }
     
 }
