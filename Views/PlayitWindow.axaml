@@ -14,16 +14,16 @@
             <TextBlock Text="playit.gg Setup" FontSize="18" FontWeight="Bold"/>
 
             <TextBlock TextWrapping="Wrap" Opacity="0.8">
-                1. Creează cont pe playit.gg
-                2. Creează un agent (Docker sau normal) și copiază Secret Key
-                3. Li pește-l aici, apasă Save + Start
-                4. Pe site creează tunnel Minecraft Java → 127.0.0.1:25565
+                1. Create a playit.gg account
+                2. Create an agent (Docker or normal) and copy the Secret Key
+                3. Paste the Secret Key in the field below and click "Save Key"
+                4. Create a tunnel on the site → 127.0.0.1:25565
             </TextBlock>
 
             <StackPanel Spacing="4">
                 <TextBlock Text="Secret Key"/>
                 <TextBox Text="{Binding SecretKey}"
-                         Watermark="Lipește Secret Key de pe playit.gg"/>
+                         Watermark="Paste Secret Key from playit.gg"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Spacing="10">
@@ -32,7 +32,7 @@
             </StackPanel>
 
             <StackPanel Spacing="4">
-                <TextBlock Text="Status agent"/>
+                <TextBlock Text="Agent status"/>
                 <TextBlock Text="{Binding Status}" FontWeight="SemiBold"/>
             </StackPanel>
 
@@ -42,7 +42,7 @@
             </StackPanel>
 
             <StackPanel Spacing="4">
-                <TextBlock Text="Adresa publică (IP tunnel)"/>
+                <TextBlock Text="Public address (IP tunnel)"/>
                 <TextBox Text="{Binding TunnelAddress}"
                          Watermark="ex: my-server.gl.joinmc.link"/>
             </StackPanel>
