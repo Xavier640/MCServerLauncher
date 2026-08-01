@@ -4,6 +4,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+
 
 namespace MCServerLauncher.Services;
 
@@ -75,5 +77,75 @@ public static class PaperDownloader
             "eula=true\n");
 
         return (jarPath, chosenVersion);
+    }
+        public static async Task<List<string>> GetAvailableVersionsAsync()
+    {
+        var projectJson = await Http.GetStringAsync("https://fill.papermc.io/v3/projects/paper");
+        using var projectDoc = JsonDocument.Parse(projectJson);
+
+        var versionsProp = projectDoc.RootElement.GetProperty("versions");
+
+        return versionsProp
+            .EnumerateObject()
+            .SelectMany(group => group.Value.EnumerateArray().Select(v => v.GetString()!))
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct()
+            .OrderByDescending(v => v, StringComparer.Ordinal)
+            .ToList();
+    }
+    public static async Task<(string JarPath, string Version)> DownloadVersionAsync(string version, string targetFolder)
+    {
+        Directory.CreateDirectory(targetFolder);
+
+        // Dacă e "latest", folosim metoda veche
+        if (string.IsNullOrWhiteSpace(version) || version == "latest")
+            return await DownloadLatestStableAsync(targetFolder);
+
+        var buildsUrl = $"https://fill.papermc.io/v3/projects/paper/versions/{version}/builds";
+        var buildsJson = await Http.GetStringAsync(buildsUrl);
+        using var buildsDoc = JsonDocument.Parse(buildsJson);
+
+        string? downloadUrl = null;
+
+        foreach (var build in buildsDoc.RootElement.EnumerateArray())
+        {
+            if (build.TryGetProperty("channel", out var channel) &&
+                channel.GetString() == "STABLE" &&
+                build.TryGetProperty("downloads", out var downloads) &&
+                downloads.TryGetProperty("server:default", out var serverDefault) &&
+                serverDefault.TryGetProperty("url", out var urlProp))
+            {
+                downloadUrl = urlProp.GetString();
+                break;
+            }
+        }
+
+        // Dacă nu e STABLE, luăm primul build disponibil
+        if (downloadUrl == null)
+        {
+            foreach (var build in buildsDoc.RootElement.EnumerateArray())
+            {
+                if (build.TryGetProperty("downloads", out var downloads) &&
+                    downloads.TryGetProperty("server:default", out var serverDefault) &&
+                    serverDefault.TryGetProperty("url", out var urlProp))
+                {
+                    downloadUrl = urlProp.GetString();
+                    break;
+                }
+            }
+        }
+
+        if (downloadUrl == null)
+            throw new Exception($"Nu am găsit download pentru versiunea {version}");
+
+        var jarPath = Path.Combine(targetFolder, "server.jar");
+        var data = await Http.GetByteArrayAsync(downloadUrl);
+        await File.WriteAllBytesAsync(jarPath, data);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(targetFolder, "eula.txt"),
+            "eula=true\n");
+
+        return (jarPath, version);
     }
 }

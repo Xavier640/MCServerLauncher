@@ -1,0 +1,66 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MCServerLauncher.ViewModels"
+        x:Class="MCServerLauncher.Views.ServerSettingsWindow"
+        x:DataType="vm:ServerSettingsViewModel"
+        Title="Server Settings"
+        Width="480"
+        Height="520"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <ScrollViewer Margin="20">
+        <StackPanel Spacing="12">
+
+            <TextBlock Text="Server Settings" FontSize="18" FontWeight="Bold"/>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="MOTD"/>
+                <TextBox Text="{Binding Motd}"/>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="Max Players"/>
+                <TextBox Text="{Binding MaxPlayers}"/>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="Port"/>
+                <TextBox Text="{Binding ServerPort}"/>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="Difficulty"/>
+                    <ComboBox ItemsSource="{Binding Difficulties}"
+                    SelectedItem="{Binding Difficulty}"
+                    HorizontalAlignment="Stretch"/>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="Gamemode"/>
+                    <ComboBox ItemsSource="{Binding Gamemodes}"
+                    SelectedItem="{Binding Gamemode}"
+                    HorizontalAlignment="Stretch"/>
+            </StackPanel>
+
+            <CheckBox Content="Online Mode (premium accounts only)" IsChecked="{Binding OnlineMode}"/>
+            <CheckBox Content="Whitelist" IsChecked="{Binding WhiteList}"/>
+            <CheckBox Content="PvP" IsChecked="{Binding Pvp}"/>
+            <CheckBox Content="Enable Command Blocks" IsChecked="{Binding EnableCommandBlock}"/>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="View Distance"/>
+                <TextBox Text="{Binding ViewDistance}"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="10"
+                        Margin="0,20,0,0">
+                <Button Content="Cancel" Name="CancelButton" Width="90" Padding="10,6"/>
+                <Button Content="Save" Name="SaveButton" Width="90" Padding="10,6"/>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>

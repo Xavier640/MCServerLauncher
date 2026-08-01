@@ -1,0 +1,62 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MCServerLauncher.ViewModels"
+        x:Class="MCServerLauncher.Views.NewServerWindow"
+        x:DataType="vm:NewServerViewModel"
+        Title="New Server"
+        Width="420"
+        Height="380"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <Design.DataContext>
+        <vm:NewServerViewModel/>
+    </Design.DataContext>
+
+    <StackPanel Margin="20" Spacing="14">
+
+        <TextBlock Text="Create New Server" FontSize="18" FontWeight="Bold"/>
+
+        <!-- Nume -->
+        <StackPanel Spacing="4">
+            <TextBlock Text="Server Name"/>
+            <TextBox Text="{Binding ServerName}"/>
+        </StackPanel>
+
+        <!-- Tip -->
+        <StackPanel Spacing="4">
+            <TextBlock Text="Server Type"/>
+            <ComboBox ItemsSource="{Binding ServerTypes}"
+                      SelectedItem="{Binding SelectedType}"
+                      HorizontalAlignment="Stretch"/>
+        </StackPanel>
+
+        <!-- Versiune -->
+        <StackPanel Spacing="4">
+            <TextBlock Text="Minecraft Version"/>
+            <ComboBox ItemsSource="{Binding Versions}"
+                      SelectedItem="{Binding SelectedVersion}"
+                      HorizontalAlignment="Stretch"/>
+        </StackPanel>
+
+        <TextBlock Text="(Fabric / Forge vin în curând)"
+                   Opacity="0.6"
+                   FontSize="12"/>
+
+        <!-- Butoane -->
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="10"
+                    Margin="0,20,0,0">
+            <Button Content="Cancel"
+                    Name="CancelButton"
+                    Width="90"
+                    Padding="10,6"/>
+            <Button Content="Create"
+                    Name="CreateButton"
+                    Width="90"
+                    Padding="10,6"/>
+        </StackPanel>
+
+    </StackPanel>
+</Window>
