@@ -62,25 +62,26 @@ public class ServerProcessService
 
     public async Task StopAsync()
     {
-        if (_process == null || _process.HasExited)
+        var process = _process;
+        if (process == null || process.HasExited)
             return;
 
         try
         {
             // Trimitem comanda stop în consolă
-            await _process.StandardInput.WriteLineAsync("stop");
-            await _process.StandardInput.FlushAsync();
+            await process.StandardInput.WriteLineAsync("stop");
+            await process.StandardInput.FlushAsync();
 
             // Așteptăm maxim 15 secunde să se închidă frumos
-            var exited = await Task.Run(() => _process.WaitForExit(15000));
+            var exited = await Task.Run(() => process.WaitForExit(15000));
             if (!exited)
             {
-                _process.Kill(entireProcessTree: true);
+                process.Kill(entireProcessTree: true);
             }
         }
         catch
         {
-            try { _process.Kill(entireProcessTree: true); } catch { }
+            try { process?.Kill(entireProcessTree: true); } catch { }
         }
         finally
         {
