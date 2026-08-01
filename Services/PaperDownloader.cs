@@ -32,7 +32,6 @@ public static class PaperDownloader
             .SelectMany(group => group.Value.EnumerateArray().Select(v => v.GetString()!))
             .Where(v => !string.IsNullOrWhiteSpace(v))
             .Distinct()
-            .OrderByDescending(v => v, StringComparer.Ordinal)
             .ToList();
 
         if (allVersions.Count == 0)
@@ -47,7 +46,7 @@ public static class PaperDownloader
             var buildsJson = await Http.GetStringAsync(buildsUrl);
             using var buildsDoc = JsonDocument.Parse(buildsJson);
 
-            foreach (var build in buildsDoc.RootElement.EnumerateArray())
+            foreach (var build in buildsDoc.RootElement.EnumerateArray().Reverse())
             {
                 if (build.TryGetProperty("channel", out var channel) &&
                     channel.GetString() == "STABLE" &&
@@ -90,7 +89,6 @@ public static class PaperDownloader
             .SelectMany(group => group.Value.EnumerateArray().Select(v => v.GetString()!))
             .Where(v => !string.IsNullOrWhiteSpace(v))
             .Distinct()
-            .OrderByDescending(v => v, StringComparer.Ordinal)
             .ToList();
     }
     public static async Task<(string JarPath, string Version)> DownloadVersionAsync(string version, string targetFolder)
@@ -107,7 +105,7 @@ public static class PaperDownloader
 
         string? downloadUrl = null;
 
-        foreach (var build in buildsDoc.RootElement.EnumerateArray())
+        foreach (var build in buildsDoc.RootElement.EnumerateArray().Reverse())
         {
             if (build.TryGetProperty("channel", out var channel) &&
                 channel.GetString() == "STABLE" &&
@@ -123,7 +121,7 @@ public static class PaperDownloader
         // Dacă nu e STABLE, luăm primul build disponibil
         if (downloadUrl == null)
         {
-            foreach (var build in buildsDoc.RootElement.EnumerateArray())
+            foreach (var build in buildsDoc.RootElement.EnumerateArray().Reverse())
             {
                 if (build.TryGetProperty("downloads", out var downloads) &&
                     downloads.TryGetProperty("server:default", out var serverDefault) &&
