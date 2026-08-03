@@ -15,6 +15,7 @@ public partial class ServerSettingsViewModel : ViewModelBase
     [ObservableProperty] private string serverPort = "25565";
     [ObservableProperty] private bool enableCommandBlock = false;
     [ObservableProperty] private string viewDistance = "10";
+    [ObservableProperty] private string maxRamMb = "2048";
 
     public ObservableCollection<string> Difficulties { get; } = new()
     {

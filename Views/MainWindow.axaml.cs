@@ -7,6 +7,8 @@ using MCServerLauncher.Models;
 using MCServerLauncher.Services;
 using MCServerLauncher.ViewModels;
 using System.Collections.Generic;
+using System.Linq;
+using System.IO;
 
 namespace MCServerLauncher.Views;
 
@@ -37,6 +39,9 @@ public partial class MainWindow : Window
 
         if (SettingsButton != null)
             SettingsButton.Click += OnSettingsClick;
+
+        if (ImportButton != null)
+            ImportButton.Click += OnImportClick;
 
         // ← AICI legătura butonului playit.gg
         if (PlayitButton != null)
@@ -69,71 +74,99 @@ public partial class MainWindow : Window
 
     try
     {
-        Title = "Se descarca serverul...";
+        Title = $"Setting up {result.SelectedType}...";
 
-        var serverName = string.IsNullOrWhiteSpace(result.ServerName)
-            ? $"Server {_vm.Servers.Count + 1}"
-            : result.ServerName;
+var serverName = string.IsNullOrWhiteSpace(result.ServerName)
+    ? $"Server {_vm.Servers.Count + 1}"
+    : result.ServerName;
 
-        var folder = ServerPathService.GetServerFolder(serverName);
+var folder = ServerPathService.GetServerFolder(serverName);
+var version = result.SelectedVersion;
+string finalVersion = version;
 
-        // Deocamdată doar Paper (latest)
-        // SelectedVersion o folosim mai târziu când adăugăm alegerea reală
-        var (jarPath, version) = await PaperDownloader.DownloadVersionAsync(
-        result.SelectedVersion,
-        folder);
+switch (result.SelectedType)
+{
+    case "Paper":
+        var paper = version == "latest"
+            ? await PaperDownloader.DownloadLatestStableAsync(folder)
+            : await PaperDownloader.DownloadVersionAsync(version, folder);
+        finalVersion = paper.Version;
+        break;
 
-        var server = new MinecraftServer
+    case "Fabric":
+        if (version == "latest")
         {
-            Name = serverName,
-            Version = version,
-            Type = result.SelectedType,
-            Status = "Stopped",
-            FolderPath = folder
-        };
+            var fabricVersions = await ModLoaderInstaller.GetFabricGameVersionsAsync();
+            version = fabricVersions.First();
+        }
+        await ModLoaderInstaller.InstallFabricAsync(version, folder);
+        finalVersion = version;
+        break;
 
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            _vm.Servers.Add(server);
-            _vm.SelectedServer = server;
-        });
+    case "NeoForge":
+        // Pentru NeoForge, "version" e de tip 21.4.x (nu MC version).
+        // Deocamdată cerem userului o versiune NeoForge validă sau folosim un default.
+        // Simplificare: instalăm pe baza unui input separat mai târziu.
+        // Temporar: aruncă mesaj clar.
+        throw new Exception("For NeoForge, please specify a valid NeoForge version (e.g., 21.4.0).");
 
-        Title = $"Server creat: {server.Type} {version}";
+    case "Forge":
+        throw new Exception("Forge installation is not yet implemented. Please use Paper or Fabric for now.");
+
+    case "Vanilla":
+        // TODO: download vanilla server.jar din Mojang
+        throw new Exception("Vanilla download will be available soon.");
+
+    default:
+        throw new Exception("Unknown server type");
+}
+
+var server = new MinecraftServer
+{
+    Name = serverName,
+    Version = finalVersion,
+    Type = result.SelectedType,
+    Status = "Stopped",
+    FolderPath = folder
+};
     }
     catch (Exception ex)
     {
-        Title = "EROARE: " + ex.Message;
+        Title = "Error: " + ex.Message;
     }
 }
 
     private void OnStartClick(object? sender, RoutedEventArgs e)
+{
+    if (_vm.SelectedServer is null)
     {
-        if (_vm.SelectedServer is null)
-        {
-            Title = "Selecteaza un server din lista";
-            return;
-        }
-
-        try
-        {
-            _processService.Start(_vm.SelectedServer.FolderPath, maxRamGb: 2);
-            _vm.SelectedServer.Status = "Running";
-            Title = "Server pornit!";
-        }
-        catch (Exception ex)
-        {
-            Title = "EROARE Start: " + ex.Message;
-        }
+        Title = "Select a server from the list";
+        return;
     }
+
+    try
+    {
+        var ramMb = _vm.SelectedServer.MaxRamMb;
+        if (ramMb < 512) ramMb = 2048;
+
+        _processService.Start(_vm.SelectedServer.FolderPath, ramMb);
+        _vm.SelectedServer.Status = "Running";
+        Title = $"Server started ({ramMb} MB RAM)";
+    }
+    catch (Exception ex)
+    {
+        Title = "Start Error: " + ex.Message;
+    }
+}
 
     private async void OnStopClick(object? sender, RoutedEventArgs e)
     {
         if (_vm.SelectedServer is null) return;
 
-        Title = "Se opreste serverul...";
+        Title = "Stopping server...";
         await _processService.StopAsync();
         _vm.SelectedServer.Status = "Stopped";
-        Title = "Server oprit";
+        Title = "Server stopped";
     }
 
     private void OnOpenFolderClick(object? sender, RoutedEventArgs e)
@@ -151,14 +184,14 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            Title = "EROARE Folder: " + ex.Message;
+            Title = "Error Opening Folder: " + ex.Message;
         }
     }
     private async void OnSettingsClick(object? sender, RoutedEventArgs e)
 {
     if (_vm.SelectedServer is null)
     {
-        Title = "Selecteaza un server";
+        Title = "Select a server";
         return;
     }
     
@@ -176,7 +209,8 @@ public partial class MainWindow : Window
         Gamemode = props.GetValueOrDefault("gamemode", "survival"),
         ServerPort = props.GetValueOrDefault("server-port", "25565"),
         EnableCommandBlock = props.GetValueOrDefault("enable-command-block", "false") == "true",
-        ViewDistance = props.GetValueOrDefault("view-distance", "10")
+        ViewDistance = props.GetValueOrDefault("view-distance", "10"),
+        MaxRamMb = _vm.SelectedServer.MaxRamMb.ToString()
     };
 
     var dialog = new ServerSettingsWindow(settingsVm);
@@ -198,8 +232,93 @@ public partial class MainWindow : Window
         ["enable-command-block"] = result.EnableCommandBlock ? "true" : "false",
         ["view-distance"] = result.ViewDistance
     };
+        if (int.TryParse(result.MaxRamMb, out var ram) && ram >= 512)
+    {
+        _vm.SelectedServer.MaxRamMb = ram;
+    }
+    else
+    {
+        Title = "Invalid RAM value. Please enter a number greater than or equal to 512.";
+        return;
+    }
 
     ServerPropertiesService.Save(_vm.SelectedServer.FolderPath, newProps);
+}
+private async void OnImportClick(object? sender, RoutedEventArgs e)
+{
+    try
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+
+        var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(
+            new Avalonia.Platform.Storage.FolderPickerOpenOptions
+            {
+                Title = "Select the Minecraft server folder to import",
+                AllowMultiple = false
+            });
+
+        if (folders.Count == 0)
+            return;
+
+        var folderPath = folders[0].Path.LocalPath;
+
+        // Verificăm că arată a server Minecraft
+        var hasJar = File.Exists(Path.Combine(folderPath, "server.jar"));
+        var hasRunBat = File.Exists(Path.Combine(folderPath, "run.bat"));
+        var hasRunSh = File.Exists(Path.Combine(folderPath, "run.sh"));
+        var hasProperties = File.Exists(Path.Combine(folderPath, "server.properties"));
+
+        if (!hasJar && !hasRunBat && !hasRunSh && !hasProperties)
+        {
+            Title = "Invalid folder: does not appear to be a Minecraft server";
+            return;
+        }
+
+        var name = new DirectoryInfo(folderPath).Name;
+
+        // Detectăm tipul aproximativ
+        string type = "Unknown";
+        if (Directory.Exists(Path.Combine(folderPath, "mods")))
+        {
+            if (File.Exists(Path.Combine(folderPath, "fabric-server-launch.jar")) ||
+                Directory.Exists(Path.Combine(folderPath, ".fabric")))
+                type = "Fabric";
+            else if (Directory.Exists(Path.Combine(folderPath, "libraries")) && hasRunBat || hasRunSh)
+                type = "Forge/NeoForge";
+            else
+                type = "Modded";
+        }
+        else if (hasJar)
+        {
+            type = "Paper/Vanilla";
+        }
+
+        // Evităm duplicate
+        if (_vm.Servers.Any(s =>
+            string.Equals(s.FolderPath, folderPath, StringComparison.OrdinalIgnoreCase)))
+        {
+            Title = "Server already exists in the list.";
+            return;
+        }
+
+        var server = new MinecraftServer
+        {
+            Name = name,
+            Version = "?",
+            Type = type,
+            Status = "Stopped",
+            FolderPath = folderPath
+        };
+
+        _vm.Servers.Add(server);
+        _vm.SelectedServer = server;
+        Title = $"Importat: {name}";
+    }
+    catch (Exception ex)
+    {
+        Title = "Import error: " + ex.Message;
+    }
 }
     
 }

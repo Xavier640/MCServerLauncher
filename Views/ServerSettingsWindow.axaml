@@ -43,6 +43,12 @@
                     HorizontalAlignment="Stretch"/>
             </StackPanel>
 
+            <StackPanel Spacing="4">
+                <TextBlock Text="Max RAM (MB)"/>
+                <TextBox Text="{Binding MaxRamMb}"
+                        Watermark="ex: 2048, 4096, 8192"/>
+            </StackPanel>
+
             <CheckBox Content="Online Mode (premium accounts only)" IsChecked="{Binding OnlineMode}"/>
             <CheckBox Content="Whitelist" IsChecked="{Binding WhiteList}"/>
             <CheckBox Content="PvP" IsChecked="{Binding Pvp}"/>

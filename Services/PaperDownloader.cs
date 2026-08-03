@@ -66,7 +66,7 @@ public static class PaperDownloader
         }
 
         if (downloadUrl == null || chosenVersion == null)
-            throw new Exception("Nu am gasit un build STABLE Paper.");
+            throw new Exception("Could not find a stable Paper build to download.");
 
         var jarPath = Path.Combine(targetFolder, "server.jar");
         var data = await Http.GetByteArrayAsync(downloadUrl);
@@ -79,20 +79,40 @@ public static class PaperDownloader
         return (jarPath, chosenVersion);
     }
         public static async Task<List<string>> GetAvailableVersionsAsync()
+{
+    var projectJson = await Http.GetStringAsync("https://fill.papermc.io/v3/projects/paper");
+    using var projectDoc = JsonDocument.Parse(projectJson);
+
+    var versionsProp = projectDoc.RootElement.GetProperty("versions");
+
+    var allVersions = versionsProp
+        .EnumerateObject()
+        .SelectMany(group => group.Value.EnumerateArray().Select(v => v.GetString()!))
+        .Where(v => !string.IsNullOrWhiteSpace(v))
+        .Distinct()
+        .ToList();
+
+    // Sortare: încercăm să aliniem cu ordinea Mojang (releaseTime)
+    try
     {
-        var projectJson = await Http.GetStringAsync("https://fill.papermc.io/v3/projects/paper");
-        using var projectDoc = JsonDocument.Parse(projectJson);
+        var mojangOrder = await MojangVersionService.GetReleaseVersionsAsync();
+        var orderIndex = mojangOrder
+            .Select((id, i) => (id, i))
+            .ToDictionary(x => x.id, x => x.i, StringComparer.OrdinalIgnoreCase);
 
-        var versionsProp = projectDoc.RootElement.GetProperty("versions");
-
-        return versionsProp
-            .EnumerateObject()
-            .SelectMany(group => group.Value.EnumerateArray().Select(v => v.GetString()!))
-            .Where(v => !string.IsNullOrWhiteSpace(v))
-            .Distinct()
+        return allVersions
+            .OrderBy(v => orderIndex.TryGetValue(v, out var idx) ? idx : int.MaxValue)
+            .ThenByDescending(v => v, StringComparer.Ordinal)
+            .ToList();
+    }
+    catch
+    {
+        // fallback: sortare text descrescătoare
+        return allVersions
             .OrderByDescending(v => v, StringComparer.Ordinal)
             .ToList();
     }
+}
     public static async Task<(string JarPath, string Version)> DownloadVersionAsync(string version, string targetFolder)
     {
         Directory.CreateDirectory(targetFolder);

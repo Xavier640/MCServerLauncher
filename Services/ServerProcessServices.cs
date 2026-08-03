@@ -14,19 +14,26 @@ public class ServerProcessService
     public event Action<string>? OutputReceived;
     public event Action? ServerStopped;
 
-    public void Start(string serverFolder, int maxRamGb = 2)
+    public void Start(string serverFolder, int maxRamMb = 2048)
+{
+    if (IsRunning)
+        throw new InvalidOperationException("Serverul rulează deja.");
+
+    if (maxRamMb < 512)
+        maxRamMb = 2048;
+
+    var jarPath = Path.Combine(serverFolder, "server.jar");
+    var runBat = Path.Combine(serverFolder, "run.bat");
+    var runSh = Path.Combine(serverFolder, "run.sh");
+
+    ProcessStartInfo startInfo;
+
+    if (File.Exists(jarPath))
     {
-        if (IsRunning)
-            throw new InvalidOperationException("Serverul rulează deja.");
-
-        var jarPath = Path.Combine(serverFolder, "server.jar");
-        if (!File.Exists(jarPath))
-            throw new FileNotFoundException("Nu am găsit server.jar", jarPath);
-
-        var startInfo = new ProcessStartInfo
+        startInfo = new ProcessStartInfo
         {
             FileName = "java",
-            Arguments = $"-Xms1G -Xmx{maxRamGb}G -jar server.jar nogui",
+            Arguments = $"-Xms512M -Xmx{maxRamMb}M -jar server.jar nogui",
             WorkingDirectory = serverFolder,
             UseShellExecute = false,
             RedirectStandardOutput = true,
@@ -34,32 +41,68 @@ public class ServerProcessService
             RedirectStandardInput = true,
             CreateNoWindow = true
         };
-
-        _process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
-
-        _process.OutputDataReceived += (_, e) =>
+    }
+    else if (OperatingSystem.IsWindows() && File.Exists(runBat))
+    {
+        startInfo = new ProcessStartInfo
         {
-            if (!string.IsNullOrEmpty(e.Data))
-                OutputReceived?.Invoke(e.Data);
+            FileName = runBat,
+            WorkingDirectory = serverFolder,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            RedirectStandardInput = true,
+            CreateNoWindow = true
         };
-
-        _process.ErrorDataReceived += (_, e) =>
+    }
+    else if (File.Exists(runSh))
+    {
+        startInfo = new ProcessStartInfo
         {
-            if (!string.IsNullOrEmpty(e.Data))
-                OutputReceived?.Invoke(e.Data);
+            FileName = "/bin/bash",
+            Arguments = "run.sh",
+            WorkingDirectory = serverFolder,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            RedirectStandardInput = true,
+            CreateNoWindow = true
         };
-
-        _process.Exited += (_, _) =>
-        {
-            ServerStopped?.Invoke();
-            _process = null;
-        };
-
-        _process.Start();
-        _process.BeginOutputReadLine();
-        _process.BeginErrorReadLine();
+    }
+    else
+    {
+        throw new FileNotFoundException(
+            "Could not find server.jar, run.bat, or run.sh in the specified folder.");
     }
 
+    _process = new Process
+    {
+        StartInfo = startInfo,
+        EnableRaisingEvents = true
+    };
+
+    _process.OutputDataReceived += (_, e) =>
+    {
+        if (!string.IsNullOrEmpty(e.Data))
+            OutputReceived?.Invoke(e.Data);
+    };
+
+    _process.ErrorDataReceived += (_, e) =>
+    {
+        if (!string.IsNullOrEmpty(e.Data))
+            OutputReceived?.Invoke(e.Data);
+    };
+
+    _process.Exited += (_, _) =>
+    {
+        ServerStopped?.Invoke();
+        _process = null;
+    };
+
+    _process.Start();
+    _process.BeginOutputReadLine();
+    _process.BeginErrorReadLine();
+}
     public async Task StopAsync()
     {
         if (_process == null || _process.HasExited)
@@ -67,11 +110,9 @@ public class ServerProcessService
 
         try
         {
-            // Trimitem comanda stop în consolă
             await _process.StandardInput.WriteLineAsync("stop");
             await _process.StandardInput.FlushAsync();
 
-            // Așteptăm maxim 15 secunde să se închidă frumos
             var exited = await Task.Run(() => _process.WaitForExit(15000));
             if (!exited)
             {
@@ -87,4 +128,5 @@ public class ServerProcessService
             _process = null;
         }
     }
+    
 }

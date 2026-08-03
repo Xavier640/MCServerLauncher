@@ -27,8 +27,9 @@
         <StackPanel Spacing="4">
             <TextBlock Text="Server Type"/>
             <ComboBox ItemsSource="{Binding ServerTypes}"
-                      SelectedItem="{Binding SelectedType}"
-                      HorizontalAlignment="Stretch"/>
+          SelectedItem="{Binding SelectedType}"
+          Name="TypeCombo"
+          HorizontalAlignment="Stretch"/>
         </StackPanel>
 
         <!-- Versiune -->
@@ -38,10 +39,6 @@
                       SelectedItem="{Binding SelectedVersion}"
                       HorizontalAlignment="Stretch"/>
         </StackPanel>
-
-        <TextBlock Text="(Fabric / Forge vin în curând)"
-                   Opacity="0.6"
-                   FontSize="12"/>
 
         <!-- Butoane -->
         <StackPanel Orientation="Horizontal"

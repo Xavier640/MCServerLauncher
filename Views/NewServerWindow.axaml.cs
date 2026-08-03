@@ -4,6 +4,9 @@ using MCServerLauncher.ViewModels;
 using System.Linq;
 using System.Threading.Tasks;
 using MCServerLauncher.Services;
+using System;
+using System.Collections.Generic;
+
 
 namespace MCServerLauncher.Views;
 
@@ -16,6 +19,13 @@ public partial class NewServerWindow : Window
         InitializeComponent();
         ViewModel = new NewServerViewModel();
         DataContext = ViewModel;
+        if (TypeCombo != null)
+        {
+            TypeCombo.SelectionChanged += async (_, _) =>
+            {
+                await LoadVersionsAsync();
+            };
+        }
 
         if (CreateButton != null)
             CreateButton.Click += OnCreateClick;
@@ -23,27 +33,38 @@ public partial class NewServerWindow : Window
         if (CancelButton != null)
             CancelButton.Click += OnCancelClick;
 
-        // Încarcă versiunile reale
+            
+
         _ = LoadVersionsAsync();
     }
 
     private async Task LoadVersionsAsync()
+{
+    try
     {
-        try
-        {
-            var versions = await PaperDownloader.GetAvailableVersionsAsync();
-            ViewModel.Versions.Clear();
-            ViewModel.Versions.Add("latest");
-            foreach (var v in versions.Take(30)) // primele 30
-                ViewModel.Versions.Add(v);
+        ViewModel.Versions.Clear();
+        ViewModel.Versions.Add("latest");
 
-            ViewModel.SelectedVersion = "latest";
-        }
-        catch
+        List<string> versions = ViewModel.SelectedType switch
         {
-            // rămân versiunile default din ViewModel
-        }
+            "Vanilla" => await MojangVersionService.GetReleaseVersionsAsync(),
+            "Fabric" => await ModLoaderInstaller.GetFabricGameVersionsAsync(),
+            "Paper" => await PaperDownloader.GetAvailableVersionsAsync(),
+            "Forge" or "NeoForge" => await MojangVersionService.GetReleaseVersionsAsync(),
+            _ => await PaperDownloader.GetAvailableVersionsAsync()
+        };
+
+        foreach (var v in versions)
+            ViewModel.Versions.Add(v);
+
+        ViewModel.SelectedVersion = "latest";
     }
+    catch (Exception ex)
+    {
+        System.Diagnostics.Debug.WriteLine(ex);
+    }
+}
+
 
     private void OnCreateClick(object? sender, RoutedEventArgs e)
     {

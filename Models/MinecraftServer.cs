@@ -16,5 +16,8 @@ public partial class MinecraftServer : ObservableObject
     [ObservableProperty]
     private string _status = "Stopped";
 
+    [ObservableProperty]
+    private int _maxRamMb = 2048;
+
     public string FolderPath { get; set; } = string.Empty;
 }

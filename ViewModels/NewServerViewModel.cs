@@ -23,12 +23,14 @@ public partial class NewServerViewModel : ViewModelBase
         "1.19.4"
     };
 
-    public ObservableCollection<string> ServerTypes { get; } = new()
-    {
-        "Paper",
-        "Vanilla"
-        // Mai târziu: "Fabric", "Forge", "NeoForge"
-    };
+public ObservableCollection<string> ServerTypes { get; } = new()
+{
+    "Paper",
+    "Vanilla",
+    "Fabric",
+    "Forge",
+    "NeoForge"
+};
 
     public bool Confirmed { get; set; }
 }
