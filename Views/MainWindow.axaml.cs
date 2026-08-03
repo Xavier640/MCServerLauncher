@@ -74,65 +74,78 @@ public partial class MainWindow : Window
 
     try
     {
-        Title = $"Setting up {result.SelectedType}...";
+        Title = $"Installing {result.SelectedType}...";
 
-var serverName = string.IsNullOrWhiteSpace(result.ServerName)
-    ? $"Server {_vm.Servers.Count + 1}"
-    : result.ServerName;
+        var serverName = string.IsNullOrWhiteSpace(result.ServerName)
+            ? $"Server {_vm.Servers.Count + 1}"
+            : result.ServerName.Trim();
 
-var folder = ServerPathService.GetServerFolder(serverName);
-var version = result.SelectedVersion;
-string finalVersion = version;
+        var folder = ServerPathService.GetServerFolder(serverName);
+        var version = result.SelectedVersion;
+        string finalVersion = version;
 
-switch (result.SelectedType)
-{
-    case "Paper":
-        var paper = version == "latest"
-            ? await PaperDownloader.DownloadLatestStableAsync(folder)
-            : await PaperDownloader.DownloadVersionAsync(version, folder);
-        finalVersion = paper.Version;
-        break;
-
-    case "Fabric":
-        if (version == "latest")
+        switch (result.SelectedType)
         {
-            var fabricVersions = await ModLoaderInstaller.GetFabricGameVersionsAsync();
-            version = fabricVersions.First();
+            case "Paper":
+            {
+                var paper = version == "latest"
+                    ? await PaperDownloader.DownloadLatestStableAsync(folder)
+                    : await PaperDownloader.DownloadVersionAsync(version, folder);
+                finalVersion = paper.Version;
+                break;
+            }
+
+            case "Fabric":
+            {
+                if (version == "latest")
+                {
+                    var list = await ModLoaderInstaller.GetFabricGameVersionsAsync();
+                    if (list.Count == 0)
+                        throw new Exception("No Fabric versions found.");
+                    version = list[0];
+                }
+                await ModLoaderInstaller.InstallFabricAsync(version, folder);
+                finalVersion = version;
+                break;
+            }
+
+            case "Vanilla":
+            {
+                var vanilla = await MojangVersionService.DownloadServerAsync(version, folder);
+                finalVersion = vanilla.Version;
+                break;
+            }
+
+            case "Forge":
+            case "NeoForge":
+                throw new Exception($"{result.SelectedType}: build selector coming soon.");
+
+            default:
+                throw new Exception("Unknown type: " + result.SelectedType);
         }
-        await ModLoaderInstaller.InstallFabricAsync(version, folder);
-        finalVersion = version;
-        break;
 
-    case "NeoForge":
-        // Pentru NeoForge, "version" e de tip 21.4.x (nu MC version).
-        // Deocamdată cerem userului o versiune NeoForge validă sau folosim un default.
-        // Simplificare: instalăm pe baza unui input separat mai târziu.
-        // Temporar: aruncă mesaj clar.
-        throw new Exception("For NeoForge, please specify a valid NeoForge version (e.g., 21.4.0).");
+        var server = new MinecraftServer
+        {
+            Name = serverName,
+            Version = finalVersion,
+            Type = result.SelectedType,
+            Status = "Stopped",
+            FolderPath = folder,
+            MaxRamMb = 2048
+        };
 
-    case "Forge":
-        throw new Exception("Forge installation is not yet implemented. Please use Paper or Fabric for now.");
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            _vm.Servers.Add(server);
+            _vm.SelectedServer = server;
+        });
 
-    case "Vanilla":
-        // TODO: download vanilla server.jar din Mojang
-        throw new Exception("Vanilla download will be available soon.");
-
-    default:
-        throw new Exception("Unknown server type");
-}
-
-var server = new MinecraftServer
-{
-    Name = serverName,
-    Version = finalVersion,
-    Type = result.SelectedType,
-    Status = "Stopped",
-    FolderPath = folder
-};
+        Title = $"Created: {server.Type} {finalVersion}";
     }
     catch (Exception ex)
     {
-        Title = "Error: " + ex.Message;
+        Title = "ERROR: " + ex.Message;
+        System.Diagnostics.Debug.WriteLine(ex);
     }
 }
 
@@ -189,6 +202,11 @@ var server = new MinecraftServer
     }
     private async void OnSettingsClick(object? sender, RoutedEventArgs e)
 {
+    var propsPath = Path.Combine(_vm.SelectedServer.FolderPath, "server.properties");
+    if (!File.Exists(propsPath))
+    {
+        Title = "server.properties missing — will be created on Save";
+    }
     if (_vm.SelectedServer is null)
     {
         Title = "Select a server";
