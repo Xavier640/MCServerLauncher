@@ -4,20 +4,10 @@ namespace MCServerLauncher.Models;
 
 public partial class MinecraftServer : ObservableObject
 {
-    [ObservableProperty]
-    private string _name = string.Empty;
-
-    [ObservableProperty]
-    private string _version = string.Empty;
-
-    [ObservableProperty]
-    private string _type = string.Empty;
-
-    [ObservableProperty]
-    private string _status = "Stopped";
-
-    [ObservableProperty]
-    private int _maxRamMb = 2048;
-
-    public string FolderPath { get; set; } = string.Empty;
+    [ObservableProperty] private string name = "";
+    [ObservableProperty] private string version = "";
+    [ObservableProperty] private string type = "";
+    [ObservableProperty] private string status = "Stopped";
+    [ObservableProperty] private string folderPath = "";
+    [ObservableProperty] private int maxRamMb = 2048;
 }

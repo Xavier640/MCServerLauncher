@@ -9,6 +9,9 @@ using MCServerLauncher.ViewModels;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using Avalonia;
+using Avalonia.Layout;
+using Avalonia.Media;
 
 namespace MCServerLauncher.Views;
 
@@ -43,7 +46,9 @@ public partial class MainWindow : Window
         if (ImportButton != null)
             ImportButton.Click += OnImportClick;
 
-        // ← AICI legătura butonului playit.gg
+        if (DeleteButton != null)
+            DeleteButton.Click += OnDeleteClick;
+
         if (PlayitButton != null)
         {
             PlayitButton.Click += async (_, _) =>
@@ -117,11 +122,32 @@ public partial class MainWindow : Window
             }
 
             case "Forge":
-            case "NeoForge":
-                throw new Exception($"{result.SelectedType}: build selector coming soon.");
+{
+    if (version == "latest")
+    {
+        var list = await ModLoaderInstaller.GetForgeMinecraftVersionsAsync();
+        if (list.Count == 0)
+            throw new Exception("No Forge Minecraft versions found.");
+        version = list[0];
+    }
+    await ModLoaderInstaller.InstallForgeAsync(version, folder);
+    finalVersion = version;
+    break;
+}
 
-            default:
-                throw new Exception("Unknown type: " + result.SelectedType);
+        case "NeoForge":
+        {
+            if (version == "latest")
+            {
+                var list = await ModLoaderInstaller.GetNeoForgeVersionsAsync();
+                if (list.Count == 0)
+                    throw new Exception("No NeoForge versions found.");
+                version = list[0];
+            }
+            await ModLoaderInstaller.InstallNeoForgeAsync(version, folder);
+            finalVersion = version;
+            break;
+        }
         }
 
         var server = new MinecraftServer
@@ -138,8 +164,9 @@ public partial class MainWindow : Window
         {
             _vm.Servers.Add(server);
             _vm.SelectedServer = server;
+            SaveServers();
         });
-
+        SaveServers();
         Title = $"Created: {server.Type} {finalVersion}";
     }
     catch (Exception ex)
@@ -281,7 +308,6 @@ private async void OnImportClick(object? sender, RoutedEventArgs e)
 
         var folderPath = folders[0].Path.LocalPath;
 
-        // Verificăm că arată a server Minecraft
         var hasJar = File.Exists(Path.Combine(folderPath, "server.jar"));
         var hasRunBat = File.Exists(Path.Combine(folderPath, "run.bat"));
         var hasRunSh = File.Exists(Path.Combine(folderPath, "run.sh"));
@@ -295,7 +321,6 @@ private async void OnImportClick(object? sender, RoutedEventArgs e)
 
         var name = new DirectoryInfo(folderPath).Name;
 
-        // Detectăm tipul aproximativ
         string type = "Unknown";
         if (Directory.Exists(Path.Combine(folderPath, "mods")))
         {
@@ -312,7 +337,6 @@ private async void OnImportClick(object? sender, RoutedEventArgs e)
             type = "Paper/Vanilla";
         }
 
-        // Evităm duplicate
         if (_vm.Servers.Any(s =>
             string.Equals(s.FolderPath, folderPath, StringComparison.OrdinalIgnoreCase)))
         {
@@ -337,6 +361,88 @@ private async void OnImportClick(object? sender, RoutedEventArgs e)
     {
         Title = "Import error: " + ex.Message;
     }
+}
+private void SaveServers()
+{
+    ServerListService.Save(_vm.Servers);
+}
+private async void OnDeleteClick(object? sender, RoutedEventArgs e)
+{
+    if (_vm.SelectedServer is null)
+    {
+        Title = "Select a server first";
+        return;
+    }
+
+    var server = _vm.SelectedServer;
+
+    // Optional: confirm dialog
+    var confirm = new Window
+    {
+        Title = "Delete server?",
+        Width = 360,
+        Height = 160,
+        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        CanResize = false
+    };
+
+    var yes = false;
+    var panel = new StackPanel
+    {
+        Margin = new Thickness(20),
+        Spacing = 12
+    };
+    panel.Children.Add(new TextBlock
+    {
+        Text = $"Delete \"{server.Name}\"?\nThis removes it from the list AND from the disk (if the folder exists).",
+        TextWrapping = TextWrapping.Wrap
+    });
+
+    var buttons = new StackPanel
+    {
+        Orientation = Avalonia.Layout.Orientation.Horizontal,
+        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+        Spacing = 10
+    };
+
+    var cancelBtn = new Button { Content = "Cancel", Padding = new Thickness(12, 6) };
+    var deleteBtn = new Button { Content = "Delete", Padding = new Thickness(12, 6) };
+
+    cancelBtn.Click += (_, _) => confirm.Close();
+    deleteBtn.Click += (_, _) =>
+    {
+        yes = true;
+        confirm.Close();
+    };
+
+    buttons.Children.Add(cancelBtn);
+    buttons.Children.Add(deleteBtn);
+    panel.Children.Add(buttons);
+    confirm.Content = panel;
+
+    await confirm.ShowDialog(this);
+
+    if (!yes) return;
+
+    // Stop if running
+    if (server.Status == "Running")
+    {
+        try { await _processService.StopAsync(); } catch { }
+    }
+
+    _vm.Servers.Remove(server);
+    _vm.SelectedServer = null;
+    SaveServers();
+    Title = $"Deleted: {server.Name}";
+    try
+{
+    if (Directory.Exists(server.FolderPath))
+        Directory.Delete(server.FolderPath, recursive: true);
+}
+catch (Exception ex)
+{
+    Title = $"Removed from list, but folder delete failed: {ex.Message}";
+}
 }
     
 }

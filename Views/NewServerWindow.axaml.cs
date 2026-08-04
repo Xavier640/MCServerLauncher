@@ -50,7 +50,8 @@ public partial class NewServerWindow : Window
             "Vanilla" => await MojangVersionService.GetReleaseVersionsAsync(),
             "Fabric" => await ModLoaderInstaller.GetFabricGameVersionsAsync(),
             "Paper" => await PaperDownloader.GetAvailableVersionsAsync(),
-            "Forge" or "NeoForge" => await MojangVersionService.GetReleaseVersionsAsync(),
+            "Forge" => await ModLoaderInstaller.GetForgeMinecraftVersionsAsync(),
+            "NeoForge" => await ModLoaderInstaller.GetNeoForgeVersionsAsync(),
             _ => await PaperDownloader.GetAvailableVersionsAsync()
         };
 
@@ -62,6 +63,7 @@ public partial class NewServerWindow : Window
     catch (Exception ex)
     {
         System.Diagnostics.Debug.WriteLine(ex);
+        Title = "ERROR loading versions: " + ex.Message;
     }
 }
 

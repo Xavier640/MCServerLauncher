@@ -32,7 +32,16 @@ public partial class MainWindowViewModel : ViewModelBase
         StartServerCommand = new RelayCommand(StartServer);
         StopServerCommand = new RelayCommand(StopServer);
         OpenFolderCommand = new RelayCommand(OpenFolder);
+       ServerPathService.EnsureServersRootExists();
+
+    // Load saved servers
+    foreach (var s in ServerListService.Load())
+    {
+        s.Status = "Stopped";
+        Servers.Add(s);
     }
+    }
+    
 
     private async Task CreateServerAsync()
 {

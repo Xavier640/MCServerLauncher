@@ -63,6 +63,7 @@
                     <Button Content="Settings" Name="SettingsButton" Padding="16,8"/>
                     <Button Content="playit.gg" Name="PlayitButton" Padding="16,8"/>
                     <Button Content="Import Server" Name="ImportButton" Padding="16,8"/>
+                    <Button Content="Delete" Name="DeleteButton" Padding="16,8"/>
         </StackPanel>
 
     </Grid>
