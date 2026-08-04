@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Closing += OnMainWindowClosing;
 
         _vm = new MainWindowViewModel();
         DataContext = _vm;
@@ -64,7 +65,7 @@ public partial class MainWindow : Window
             {
                 if (_vm.SelectedServer != null)
                     _vm.SelectedServer.Status = "Stopped";
-                Title = "Server oprit";
+                Title = "Server stopped";
             });
         };
     }
@@ -176,38 +177,74 @@ public partial class MainWindow : Window
     }
 }
 
-    private void OnStartClick(object? sender, RoutedEventArgs e)
+    private async void OnStartClick(object? sender, RoutedEventArgs e)
 {
     if (_vm.SelectedServer is null)
     {
-        Title = "Select a server from the list";
+        Title = "Select a server first";
         return;
     }
 
     try
     {
+        // 1) Start playit agent (if secret key is configured)
+        if (!string.IsNullOrWhiteSpace(_playitService.SecretKey))
+        {
+            if (!_playitService.IsRunning)
+            {
+                Title = "Starting playit agent...";
+                _playitService.Start();
+                // small delay so agent can connect
+                await Task.Delay(2000);
+            }
+        }
+        else
+        {
+            Title = "Warning: no playit Secret Key — local only";
+        }
+
+        // 2) Start Minecraft server
         var ramMb = _vm.SelectedServer.MaxRamMb;
         if (ramMb < 512) ramMb = 2048;
 
         _processService.Start(_vm.SelectedServer.FolderPath, ramMb);
         _vm.SelectedServer.Status = "Running";
-        Title = $"Server started ({ramMb} MB RAM)";
+
+        var tunnel = _playitService.TunnelAddress;
+        if (!string.IsNullOrWhiteSpace(tunnel))
+            Title = $"Server running | Public: {tunnel}";
+        else if (!string.IsNullOrWhiteSpace(_playitService.SecretKey))
+            Title = "Server + playit running (set tunnel address in playit.gg menu)";
+        else
+            Title = $"Server running ({ramMb} MB RAM) — localhost only";
     }
     catch (Exception ex)
     {
-        Title = "Start Error: " + ex.Message;
+        Title = "ERROR Start: " + ex.Message;
     }
 }
 
     private async void OnStopClick(object? sender, RoutedEventArgs e)
-    {
-        if (_vm.SelectedServer is null) return;
+{
+    if (_vm.SelectedServer is null) return;
 
+    try
+    {
         Title = "Stopping server...";
         await _processService.StopAsync();
-        _vm.SelectedServer.Status = "Stopped";
+
+        if (_vm.SelectedServer != null)
+            _vm.SelectedServer.Status = "Stopped";
+
+        _playitService.Stop();
+
         Title = "Server stopped";
     }
+    catch (Exception ex)
+    {
+        Title = "ERROR Stop: " + ex.Message;
+    }
+}
 
     private void OnOpenFolderClick(object? sender, RoutedEventArgs e)
     {
@@ -444,5 +481,28 @@ catch (Exception ex)
     Title = $"Removed from list, but folder delete failed: {ex.Message}";
 }
 }
+private void OnMainWindowClosing(object? sender, WindowClosingEventArgs e)
+{
+    // Stop server if running
+    try
+    {
+        if (_processService.IsRunning)
+            _ = _processService.StopAsync();
+    }
+    catch { }
+
+    // Demo mode: delete temp files
+    if (App.IsDemoMode)
+    {
+        try
+        {
+            var demoRoot = Path.Combine(Path.GetTempPath(), "MCServerLauncherDemo");
+            if (Directory.Exists(demoRoot))
+                Directory.Delete(demoRoot, recursive: true);
+        }
+        catch { }
+    }
+}
+
     
 }

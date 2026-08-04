@@ -20,6 +20,7 @@ public static class ServerListService
 
     public static List<MinecraftServer> Load()
     {
+        if (App.IsDemoMode) return new List<MinecraftServer>();
         try
         {
             if (!File.Exists(ListPath))
@@ -37,6 +38,7 @@ public static class ServerListService
 
     public static void Save(IEnumerable<MinecraftServer> servers)
     {
+        if (App.IsDemoMode) return;
         var dir = Path.GetDirectoryName(ListPath)!;
         Directory.CreateDirectory(dir);
 

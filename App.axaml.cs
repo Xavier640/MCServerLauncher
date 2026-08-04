@@ -8,6 +8,8 @@ namespace MCServerLauncher;
 
 public partial class App : Application
 {
+    public static bool IsDemoMode { get; set; }
+    
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
